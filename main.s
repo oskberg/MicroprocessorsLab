@@ -1,24 +1,27 @@
 	#include <xc.inc>
 
 psect	code, abs
-	
+OE1	EQU	1
+OE2	EQU	2
+CP1	EQU	5
+CP2	EQU	6
+
 main:
 	org	0x0
 	goto	start
 
 	org	0x100		    ; Main code starts here at address 0x100
+	
+	
+	
+setup:	; set controlling bits to high
+	clrf	TRISD, A
+	BSF	OE1, 1, A
+	BSF	OE2, 1, A
+	BSF	CP1, 1, A
+	BSF	CP2, 1, A
+	return	0
 start:
-	movlw 	0x0
-	movwf	TRISB, A	    ; Port C all outputs
-	bra 	test
-loop:
-	movff 	0x06, PORTB
-	incf 	0x06, W, A
-test:
-	movwf	0x06, A	    ; Test for end of loop condition
-	movlw 	0x63
-	cpfsgt 	0x06, A
-	bra 	loop		    ; Not yet finished goto start of loop again
-	goto 	0x0		    ; Re-run program from start
-
-	end	main
+	call	setup
+	
+	
