@@ -21,7 +21,7 @@ start:
 	len	equ 0xFFFF    ; lenght of delay
 	hi	equ 0x20    ; high 16 bit
 	lo	equ 0x21    ; low 16 bit
-	outLim	equ 0x7F    ; break counting loop at this value
+	outLim	equ 0xFE    ; break counting loop at this value
 	
 	movlw	0x00	    ; initialise counter to 0
 	movwf	c0, A	    
