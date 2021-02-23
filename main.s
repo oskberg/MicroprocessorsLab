@@ -5,6 +5,9 @@ psect	code, abs
 sDelay	EQU	0x10
 sdCount	EQU	0x20
 	
+mem1	EQU	0x30
+mem2	EQU	0x32
+	
 OE1	EQU	1
 OE2	EQU	2
 CP1	EQU	5
@@ -16,7 +19,21 @@ main:
 	goto	start
 
 	org	0x100		    ; Main code starts here at address 0x100
-	 
+
+; perform a clock pulse on cp1
+clockPulse1:
+	BCF	PORTD, CP1, A	;Set clock low
+	call	shortDelay	;delay for a little bit
+	BSF	PORTD, CP1, A	;set high again	
+	return
+
+; perform a clock pulse on cp2
+clockPulse2:
+	BCF	PORTD, CP2, A	;Set clock low
+	call	shortDelay	;delay for a little bit
+	BSF	PORTD, CP2, A	;set high again	
+	return
+
 ; a few hundred nanoseconds delay
 shortDelay:
 	movlw	sDelay
@@ -40,15 +57,24 @@ setup:	; set controlling bits to high
 	
 	return	0
 	
-; Simple write test without connected memory
+; Simple write
 writeTest1:
 	clrf	TRISE, A
-	movlw	0xbb		; set d values here
+	movlw	0xbc		; set E values here
 	movwf	LATE, A
 	
-	BCF	PORTD, CP1, A	;Set clock low
-	call	shortDelay	;delay for a little bit
-	BSF	PORTD, CP1, A	;set high again	
+	call	clockPulse1
+	
+	setf	TRISE, A
+	return
+	
+; Simple write
+writeTest2:
+	clrf	TRISE, A
+	movlw	0x38		; set E values here
+	movwf	LATE, A
+	
+	call	clockPulse2
 	
 	setf	TRISE, A
 	return
@@ -60,13 +86,29 @@ readTest1:
 	movf	PORTE, W, A	;move output into wreg
 	BSF	PORTD, OE1, A	
 	return	0
+	
+; simple read function without connected memory
+readTest2:
+	BCF	PORTD, OE2, A	;set oe1 low to read the output
+	call	shortDelay
+	movf	PORTE, W, A	;move output into wreg
+	BSF	PORTD, OE2, A	
+	return	0
 start:
-	call	setup
+	call	setup		;setup pins
 	call	shortDelay
 	call	shortDelay
-	call	writeTest1
+	call	writeTest1	; write to chip 1
 	call	shortDelay
 	call	shortDelay
-	call	readTest1
+	call	writeTest2	; write to chip 2
+	call	shortDelay
+	call	shortDelay
+	call	readTest1	; read chip 1
+	movwf	mem1, A		; store value somewhere
+	call	shortDelay
+	call	shortDelay
+	call	readTest2	; read chip 2
+	movwf	mem2, A		; store value somewhere else
 	
 	goto	main
