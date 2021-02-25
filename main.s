@@ -1,14 +1,28 @@
 #include <xc.inc>
 
 psect	code, abs
-
+	
+c0	equ 0x10    ; counter location
+len	equ 0xFFFF    ; lenght of delay
+hi	equ 0x20    ; high 16 bit
+lo	equ 0x21    ; low 16 bit
+outLim	equ 0xFE    ; break counting loop at this value
 count	equ	0x11
 lim1	equ	0xFE
+	
 main:
 	org	0x0
 	goto	start
 
 	org	0x100		    ; Main code starts here at address 0x100
+
+largeDelay:
+	movlw	0x00
+ldLoop:	; There is only no carry when going from 0 -> 0xFF for both hi and low
+	decf	lo, f, A
+	subwfb	hi, f, A
+	bc	ldLoop	    ; loop if carry
+	return 0	    ; return when no carry
 
 	; set up the transfer pins and stuff
 SPI_MasterInit:
@@ -45,6 +59,13 @@ start:
 	
 ;	
 counterLoop:
+    	movlw	high(len)   ; reset delay value
+	movwf	hi, A
+	movlw	low(len)
+	movwf	lo, A
+	    
+	call	largeDelay  ; call delay
+    
 	movf	count, W, A
 	call	SPI_MasterTransmit
 	incf	count, F, A
