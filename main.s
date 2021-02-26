@@ -20,7 +20,7 @@ setup:	bcf	CFGS	; point to Flash program memory
 	bsf	EEPGD 	; access Flash program memory
 	call	LCD_Setup	; setup UART
 		;setup keypad
-	call testRoutine
+	call	testRoutine
 	banksel PADCFG1
 	bsf	REPU	    ; set pull-ups
 	movlb	0
