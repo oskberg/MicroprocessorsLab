@@ -1,6 +1,6 @@
 #include <xc.inc>
 
-global  LCD_Setup, LCD_Write_Message
+global  LCD_Setup, LCD_Write_Message, LCD_Clear_Screen, LCD_delay_ms, LCD_Cursor_Line_2, LCD_Write_Message_PM
 
 psect	udata_acs   ; named variables in access ram
 LCD_cnt_l:	ds 1   ; reserve 1 byte for variable LCD_cnt_l
@@ -8,6 +8,8 @@ LCD_cnt_h:	ds 1   ; reserve 1 byte for variable LCD_cnt_h
 LCD_cnt_ms:	ds 1   ; reserve 1 byte for ms counter
 LCD_tmp:	ds 1   ; reserve 1 byte for temporary use
 LCD_counter:	ds 1   ; reserve 1 byte for counting through nessage
+LCD_counter_pm:	ds 1   ; reserve 1 byte for counting through nessage
+shift_counter:	ds 1	;reserve 1 byte for shifting cursor
 
 	LCD_E	EQU 5	; LCD enable bit
     	LCD_RS	EQU 4	; LCD register select bit
@@ -54,7 +56,42 @@ LCD_Loop_message:
 	decfsz  LCD_counter, A
 	bra	LCD_Loop_message
 	return
-
+	
+LCD_Write_Message_PM:	    ; write message from program memory
+    	movwf   LCD_counter_pm, A
+LCD_Loop_message_PM:
+	tblrd*+
+	movf	TABLAT, W, A
+	call    LCD_Send_Byte_D
+	decfsz  LCD_counter_pm, A
+	bra	LCD_Loop_message_PM
+	return
+	
+LCD_Clear_Screen:
+	movlw	00000001B
+	call	LCD_Send_Byte_I
+	movlw	2		; wait 2ms
+	call	LCD_delay_ms
+	return 
+	
+; put cursor on the second line of the LCD display
+LCD_Cursor_Line_2:
+	movlw	0x28	    ; move 40 steps 
+	movwf	shift_counter, A
+	movlw	0000010B    ; move cursor home
+	call	LCD_Send_Byte_I	
+	movlw	0x02
+	call	LCD_delay_ms ;2 ms delay
+shiftLoop:
+	movlw	00010100B
+	call	LCD_Send_Byte_I
+	movlw	250	    ; 40 us delay
+	call	LCD_delay_x4us	
+	decfsz	shift_counter, f, A
+	bra	shiftLoop
+	
+	return 
+	
 LCD_Send_Byte_I:	    ; Transmits byte stored in W to instruction reg
 	movwf   LCD_tmp, A
 	swapf   LCD_tmp, W, A   ; swap nibbles, high nibble goes first
