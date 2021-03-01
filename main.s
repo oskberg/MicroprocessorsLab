@@ -86,7 +86,7 @@ delay:	decfsz	delay_count, A	; decrement until zero
 readRow:	; read row output
 	movlw	0x0f	    ; set 0-3 as input and 4-7 as output on PORT E
 	movwf	TRISE, A
-	movlw	0x10	    ; 40 us delay to let pin volatges settle
+	movlw	0x10	    ; 40 us delay to let pin volatges settle (in hex...)
 	call	LCD_delay_x4us ; delay
 	
 	movf	PORTE, W, A ; move result into w
