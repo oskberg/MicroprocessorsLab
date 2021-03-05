@@ -1,7 +1,8 @@
 #include <xc.inc>
 
-extrn	UART_Setup, UART_Transmit_Message  ; external subroutines
-extrn	LCD_Setup, LCD_Write_Message, LCD_Clear_Screen, LCD_delay_ms, LCD_Cursor_Line_2, LCD_Write_Message_PM
+extrn	UART_Setup, UART_Transmit_Message  ; external uart subroutines
+extrn	LCD_Setup, LCD_Write_Message, LCD_Write_Hex ; external LCD subroutines
+extrn	ADC_Setup, ADC_Read		   ; external ADC subroutines
 	
 psect	udata_acs   ; reserve data space in access ram
 counter:    ds 1    ; reserve one byte for a counter variable
@@ -27,11 +28,8 @@ setup:	bcf	CFGS	; point to Flash program memory
 	bsf	EEPGD 	; access Flash program memory
 	call	UART_Setup	; setup UART
 	call	LCD_Setup	; setup UART
+	call	ADC_Setup	; setup ADC
 	goto	start
-	
-	; setup buttons on F for input
-	setf	TRISD, A
-
 	
 	; ******* Main programme ****************************************
 start: 	lfsr	0, myArray	; Load FSR0 with address in RAM	
@@ -52,50 +50,19 @@ loop: 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
 	lfsr	2, myArray
 	call	UART_Transmit_Message
 
-writeLoop:
-    	
-	; clear LCD
-	call	LCD_Clear_Screen
-
-	; delay
-	movlw	0xFE
-	call	LCD_delay_ms
-	movlw	0xFE
-	call	LCD_delay_ms
+	movlw	myTable_l-1	; output message to LCD
+				; don't send the final carriage return to LCD
+	lfsr	2, myArray
+	call	LCD_Write_Message
 	
-;	; write to LCD from ram
-;	movlw	myTable_l	; output message to LCD
-;	addlw	0xff		; don't send the final carriage return to LCD
-;	lfsr	2, myArray
-;	call	LCD_Write_Message   ; write message
+measure_loop:
+	call	ADC_Read
+	movf	ADRESH, W, A
+	call	LCD_Write_Hex
+	movf	ADRESL, W, A
+	call	LCD_Write_Hex
+	goto	measure_loop		; goto current line in code
 	
-	; read buttons on e
-	movlw	0x00
-	cpfseq	PORTD, A
-	call	LCD_Cursor_Line_2   ; write on second line
-	
-	; LOAD TABLE POINTERS ;
-	movlw	low highword(myTable)	; address of data in PM
-	movwf	TBLPTRU, A		; load upper bits to TBLPTRU
-	movlw	high(myTable)	; address of data in PM
-	movwf	TBLPTRH, A		; load high byte to TBLPTRH
-	movlw	low(myTable)	; address of data in PM
-	movwf	TBLPTRL, A		; load low byte to TBLPTRL
-	
-	;write to LCD from tablat
-	movlw	myTable_l	; output message to LCD
-	addlw	0xff		; don't send the final carriage return to LCD
-	call	LCD_Write_Message_PM   ; write message
-
-	; delay
-	movlw	0xFE
-	call	LCD_delay_ms
-	movlw	0xFE
-	call	LCD_delay_ms
-	
-	bra	writeLoop
-	goto	$		; goto current line in code
-
 	; a delay subroutine if you need one, times around loop in delay_count
 delay:	decfsz	delay_count, A	; decrement until zero
 	bra	delay
