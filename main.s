@@ -1,9 +1,10 @@
 #include <xc.inc>
 
 extrn	UART_Setup, UART_Transmit_Message  ; external uart subroutines
-extrn	LCD_Setup, LCD_Write_Message, LCD_Write_Hex ; external LCD subroutines
+extrn	LCD_Setup, LCD_Write_Message, LCD_Write_Hex, LCD_Clear_Screen, LCD_Write_Dec ; external LCD subroutines
 extrn	ADC_Setup, ADC_Read		   ; external ADC subroutines
-	
+extrn	testing_loop, prod_1, prod_2, prod_3, prod_4, dec_1, dec_2, dec_3, dec_4, hex_to_dec
+extrn	mul_16_h_2, mul_16_l_2
 psect	udata_acs   ; reserve data space in access ram
 counter:    ds 1    ; reserve one byte for a counter variable
 delay_count:ds 1    ; reserve one byte for counter in the delay routine
@@ -32,7 +33,8 @@ setup:	bcf	CFGS	; point to Flash program memory
 	goto	start
 	
 	; ******* Main programme ****************************************
-start: 	lfsr	0, myArray	; Load FSR0 with address in RAM	
+start: 	
+	lfsr	0, myArray	; Load FSR0 with address in RAM	
 	movlw	low highword(myTable)	; address of data in PM
 	movwf	TBLPTRU, A		; load upper bits to TBLPTRU
 	movlw	high(myTable)	; address of data in PM
@@ -48,7 +50,7 @@ loop: 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
 		
 	movlw	myTable_l	; output message to UART
 	lfsr	2, myArray
-	call	UART_Transmit_Message
+;	call	UART_Transmit_Message
 
 	movlw	myTable_l-1	; output message to LCD
 				; don't send the final carriage return to LCD
@@ -56,11 +58,24 @@ loop: 	tblrd*+			; one byte from PM to TABLAT, increment TBLPRT
 	call	LCD_Write_Message
 	
 measure_loop:
+;	call	LCD_Clear_Screen
+	
 	call	ADC_Read
 	movf	ADRESH, W, A
-	call	LCD_Write_Hex
+	movwf	mul_16_h_2, A
 	movf	ADRESL, W, A
-	call	LCD_Write_Hex
+	movwf	mul_16_l_2, A
+
+	call	hex_to_dec
+	movf	dec_1, W, A
+	call	LCD_Write_Dec
+	movf	dec_2, W, A
+	call	LCD_Write_Dec
+	movf	dec_3, W, A
+	call	LCD_Write_Dec
+	movf	dec_4, W, A
+	call	LCD_Write_Dec
+
 	goto	measure_loop		; goto current line in code
 	
 	; a delay subroutine if you need one, times around loop in delay_count
